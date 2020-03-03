@@ -2,6 +2,7 @@
 *.pyc
 examples/datasets/*/
 examples/output
+output/
 sentence_transformers.egg-info
 dist/
 examples_nr/
