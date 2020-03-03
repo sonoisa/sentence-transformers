@@ -8,7 +8,7 @@ examples_nr/
 
 # support Japanese
 examples/*_ja
-examples/training_*_ja.py
+examples/*_ja.py
 
 .floydexpt
 .floydignore
