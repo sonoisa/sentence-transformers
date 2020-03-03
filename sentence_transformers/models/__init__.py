@@ -1,5 +1,6 @@
 from .ALBERT import ALBERT
 from .BERT import BERT
+from .BERTJapanese import BERTJapanese
 from .BoW import BoW
 from .CamemBERT import CamemBERT
 from .CNN import CNN
