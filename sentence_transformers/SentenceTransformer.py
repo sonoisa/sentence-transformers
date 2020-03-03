@@ -21,7 +21,7 @@ from .util import import_from_string, batch_to_device, http_get
 from . import __version__
 
 class SentenceTransformer(nn.Sequential):
-    def __init__(self, model_name_or_path: str = None, modules: Iterable[nn.Module] = None, device: str = None):
+    def __init__(self, model_name_or_path: str = None, modules: Iterable[nn.Module] = None, device: str = None, show_progress_bar: bool = None, environment: str = None):
         if modules is not None and not isinstance(modules, OrderedDict):
             modules = OrderedDict([(str(idx), module) for idx, module in enumerate(modules)])
 
@@ -90,6 +90,11 @@ class SentenceTransformer(nn.Sequential):
         self.device = torch.device(device)
         self.to(device)
 
+        if show_progress_bar is None:
+            show_progress_bar = (logging.getLogger().getEffectiveLevel()==logging.INFO or logging.getLogger().getEffectiveLevel()==logging.DEBUG)
+        self.show_progress_bar = show_progress_bar
+        self.environment = environment
+
     def encode(self, sentences: List[str], batch_size: int = 8, show_progress_bar: bool = None) -> List[ndarray]:
         """
        Computes sentence embeddings
@@ -103,17 +108,19 @@ class SentenceTransformer(nn.Sequential):
        :return:
            a list with ndarrays of the embeddings for each sentence
        """
-        if show_progress_bar is None:
-            show_progress_bar = (logging.getLogger().getEffectiveLevel()==logging.INFO or logging.getLogger().getEffectiveLevel()==logging.DEBUG)
 
+        show_progress_bar = self.show_progress_bar
         all_embeddings = []
         length_sorted_idx = np.argsort([len(sen) for sen in sentences])
 
         iterator = range(0, len(sentences), batch_size)
-        if show_progress_bar:
+        if show_progress_bar and self.environment != "floyd":
             iterator = tqdm(iterator, desc="Batches")
 
         for batch_idx in iterator:
+            if show_progress_bar and self.environment == "floyd":
+                logging.info("Batches {}".format(batch_idx))
+
             batch_tokens = []
 
             batch_start = batch_idx
@@ -237,7 +244,7 @@ class SentenceTransformer(nn.Sequential):
 
 
     def fit(self,
-            train_objectives: Iterable[Tuple[DataLoader, nn.Module]],
+            train_objectives: List[Tuple[DataLoader, nn.Module]],
             evaluator: SentenceEvaluator,
             epochs: int = 1,
             steps_per_epoch = None,
@@ -339,14 +346,26 @@ class SentenceTransformer(nn.Sequential):
 
         num_train_objectives = len(train_objectives)
 
-        for epoch in trange(epochs, desc="Epoch"):
+        if self.show_progress_bar and self.environment != "floyd":
+            iter_epochs = trange(epochs, desc="Epoch")
+            iter_steps_per_epoch = trange(steps_per_epoch, desc="Iteration", smoothing=0.05)
+        else:
+            iter_epochs = range(epochs)
+            iter_steps_per_epoch = range(steps_per_epoch)
+
+        for epoch in iter_epochs:
             training_steps = 0
+            if self.show_progress_bar and self.environment == "floyd":
+                logging.info("Epoch {}/{}".format(epoch, epochs))
 
             for loss_model in loss_models:
                 loss_model.zero_grad()
                 loss_model.train()
 
-            for _ in trange(steps_per_epoch, desc="Iteration", smoothing=0.05):
+            for step_idx in iter_steps_per_epoch:
+                if self.show_progress_bar and self.environment == "floyd" and step_idx % 100 == 0:
+                    logging.info("Iteration {}/{}".format(step_idx, steps_per_epoch))
+
                 for train_idx in range(num_train_objectives):
                     loss_model = loss_models[train_idx]
                     optimizer = optimizers[train_idx]

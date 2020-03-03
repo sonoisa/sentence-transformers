@@ -22,7 +22,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
     """
 
 
-    def __init__(self, dataloader: DataLoader, main_similarity: SimilarityFunction = None, name: str = '', show_progress_bar: bool = None):
+    def __init__(self, dataloader: DataLoader, main_similarity: SimilarityFunction = None, name: str = '', show_progress_bar: bool = None, environment: str = None):
         """
         Constructs an evaluator based for the dataset
 
@@ -42,6 +42,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         if show_progress_bar is None:
             show_progress_bar = (logging.getLogger().getEffectiveLevel() == logging.INFO or logging.getLogger().getEffectiveLevel() == logging.DEBUG)
         self.show_progress_bar = show_progress_bar
+        self.environment = environment
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.csv_file: str = "similarity_evaluation"+name+"_results.csv"
@@ -66,7 +67,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         self.dataloader.collate_fn = model.smart_batching_collate
 
         iterator = self.dataloader
-        if self.show_progress_bar:
+        if self.show_progress_bar and self.environment != "floyd":
             iterator = tqdm(iterator, desc="Convert Evaluating")
 
         for step, batch in enumerate(iterator):
@@ -102,14 +103,27 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         eval_pearson_dot, _ = pearsonr(labels, dot_products)
         eval_spearman_dot, _ = spearmanr(labels, dot_products)
 
-        logging.info("Cosine-Similarity :\tPearson: {:.4f}\tSpearman: {:.4f}".format(
-            eval_pearson_cosine, eval_spearman_cosine))
-        logging.info("Manhattan-Distance:\tPearson: {:.4f}\tSpearman: {:.4f}".format(
-            eval_pearson_manhattan, eval_spearman_manhattan))
-        logging.info("Euclidean-Distance:\tPearson: {:.4f}\tSpearman: {:.4f}".format(
-            eval_pearson_euclidean, eval_spearman_euclidean))
-        logging.info("Dot-Product-Similarity:\tPearson: {:.4f}\tSpearman: {:.4f}".format(
-            eval_pearson_dot, eval_spearman_dot))
+        if self.environment == "floyd":
+            logging.info("Cosine-Similarity :\tPearson: {:.4f}\tSpearman: {:.4f}".format(
+                eval_pearson_cosine, eval_spearman_cosine))
+            logging.info("Manhattan-Distance:\tPearson: {:.4f}\tSpearman: {:.4f}".format(
+                eval_pearson_manhattan, eval_spearman_manhattan))
+            logging.info("Euclidean-Distance:\tPearson: {:.4f}\tSpearman: {:.4f}".format(
+                eval_pearson_euclidean, eval_spearman_euclidean))
+            logging.info("Dot-Product-Similarity:\tPearson: {:.4f}\tSpearman: {:.4f}".format(
+                eval_pearson_dot, eval_spearman_dot))
+
+            print('{{"metric": "CosSim Pearson", "value": {:.4f}}}'.format(eval_pearson_cosine))
+            print('{{"metric": "CosSim Spearman", "value": {:.4f}}}'.format(eval_spearman_cosine))
+        else:
+            logging.info("Cosine-Similarity :\tPearson: {:.4f}\tSpearman: {:.4f}".format(
+                eval_pearson_cosine, eval_spearman_cosine))
+            logging.info("Manhattan-Distance:\tPearson: {:.4f}\tSpearman: {:.4f}".format(
+                eval_pearson_manhattan, eval_spearman_manhattan))
+            logging.info("Euclidean-Distance:\tPearson: {:.4f}\tSpearman: {:.4f}".format(
+                eval_pearson_euclidean, eval_spearman_euclidean))
+            logging.info("Dot-Product-Similarity:\tPearson: {:.4f}\tSpearman: {:.4f}".format(
+                eval_pearson_dot, eval_spearman_dot))
 
         if output_path is not None:
             csv_path = os.path.join(output_path, self.csv_file)

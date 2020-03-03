@@ -5,3 +5,12 @@ examples/output
 sentence_transformers.egg-info
 dist/
 examples_nr/
+
+# support Japanese
+examples/*_ja
+examples/training_*_ja.py
+
+.floydexpt
+.floydignore
+floyd.yml
+floyd_requirements.txt

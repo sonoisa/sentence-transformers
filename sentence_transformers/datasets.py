@@ -20,13 +20,14 @@ class SentencesDataset(Dataset):
     The SentenceBertEncoder.smart_batching_collate is required for this to work.
     SmartBatchingDataset does *not* work without it.
     """
-    def __init__(self, examples: List[InputExample], model: SentenceTransformer, show_progress_bar: bool = None):
+    def __init__(self, examples: List[InputExample], model: SentenceTransformer, show_progress_bar: bool = None, environment: str = None):
         """
         Create a new SentencesDataset with the tokenized texts and the labels as Tensor
         """
         if show_progress_bar is None:
             show_progress_bar = (logging.getLogger().getEffectiveLevel() == logging.INFO or logging.getLogger().getEffectiveLevel() == logging.DEBUG)
         self.show_progress_bar = show_progress_bar
+        self.environment = environment
 
         self.convert_input_examples(examples, model)
 
@@ -52,10 +53,15 @@ class SentencesDataset(Dataset):
         iterator = examples
         max_seq_length = model.get_max_seq_length()
 
-        if self.show_progress_bar:
+        if self.show_progress_bar and self.environment != "floyd":
             iterator = tqdm(iterator, desc="Convert dataset")
+        total_sentences = len(examples)
+        interval = total_sentences // 10
 
         for ex_index, example in enumerate(iterator):
+            if self.show_progress_bar and ex_index % interval == 0 and self.environment == "floyd":
+                logging.info("{}% {}/{}".format(round(ex_index / total_sentences * 100), ex_index, total_sentences))
+
             if label_type is None:
                 if isinstance(example.label, int):
                     label_type = torch.long
