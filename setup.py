@@ -22,7 +22,8 @@ setup(
         "numpy",
         "scikit-learn",
         "scipy",
-        "nltk"
+        "nltk",
+        "mecab-python3"
     ],
     classifiers=[
         "Development Status :: 4 - Beta",
