@@ -6,6 +6,7 @@ output/
 sentence_transformers.egg-info
 dist/
 examples_nr/
+models/
 
 # support Japanese
 examples/*_ja
