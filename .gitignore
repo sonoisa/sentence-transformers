@@ -1,16 +1,16 @@
 .idea
 *.pyc
-examples/datasets/*/
-examples/output
-output/
+/examples/datasets/*/
+/examples/output
+/output/
 sentence_transformers.egg-info
-dist/
-examples_nr/
-models/
+/dist/
+/examples_nr/
+/models/
 
 # support Japanese
-examples/*_ja
-examples/*_ja.py
+/examples/*_ja
+/examples/*_ja.py
 
 .floydexpt
 .floydignore
