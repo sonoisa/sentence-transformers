@@ -5,4 +5,4 @@ numpy
 scikit-learn
 scipy
 nltk
-mecab-python3
+mecab-python3==0.996.5
